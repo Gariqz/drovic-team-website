@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import Nav from "@/components/Navbar";
 import Footer from "@/components/Footer"
+import { Analytics } from '@vercel/analytics/react';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,6 +28,7 @@ export default function RootLayout({
           {/* FIX 2: Hapus 'pt-16'. Biarkan page yang handle padding sendiri biar background bisa full screen */}
           <main>
             {children}
+            <Analytics />
           </main>
           
           <Footer />
