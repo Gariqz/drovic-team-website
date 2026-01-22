@@ -1,57 +1,75 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { motion, useScroll, useTransform, AnimatePresence, Variants } from 'framer-motion'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import Lenis from 'lenis'
-import { Button, Modal, ModalContent, ModalBody, ModalFooter, useDisclosure, Card, Chip } from "@heroui/react"
-import { Image as ImageIcon, Video, Play, ExternalLink, MousePointer2, X, Share2, CheckCircle2, AlertTriangle, Eye, Heart, Calendar, Hash } from 'lucide-react'
+import { Button, Modal, ModalContent, useDisclosure, Card, Chip } from "@heroui/react"
+// Import Client Supabase
+import { createClient } from '@/src/lib/supabase'
+// Import Icons
+import { Image as ImageIcon, Video, Play, ExternalLink, MousePointer2, X, Share2, CheckCircle2, AlertTriangle, Eye, Heart, Calendar } from 'lucide-react'
 import Link from 'next/link'
 
-// --- Types ---
+// 1. IMPORT LIBRARY EMBED
+import { TikTokEmbed } from 'react-social-media-embed';
+
+// --- Types (Sesuai kolom Database) ---
 interface GalleryItem {
   id: number
   type: 'photo' | 'video' | 'clip'
   title: string
-  date: string
-  thumbnail: string
-  url: string
-  description?: string
-  height: string
-  // Mock Data Tambahan biar Informatif
+  date_display: string 
+  thumbnail_class: string 
+  thumbnail_url?: string | null 
+  url: string // Pastikan URL di DB formatnya https://www.tiktok.com/@user/video/ID
+  height_class: string 
   views?: string
   likes?: string
   tags?: string[]
 }
 
-// --- Mock Data ---
-const galleryItems: GalleryItem[] = [
-  { id: 1, type: 'photo', title: 'Victory Royale', date: 'Jan 15, 2026', thumbnail: 'bg-blue-500', url: '#', height: 'h-[400px]', views: '12.5K', likes: '2.3K', tags: ['#Gaming', '#Win'] },
-  { id: 2, type: 'video', title: 'Mic Fails', date: 'Jan 14, 2026', thumbnail: 'bg-purple-500', url: '#', height: 'h-[300px]', views: '45K', likes: '5K', tags: ['#Funny', '#Fail'] },
-  { id: 3, type: 'clip', title: 'Insane Clutch', date: 'Jan 13, 2026', thumbnail: 'bg-red-500', url: '#', height: 'h-[350px]', views: '8.2K', likes: '1.1K', tags: ['#Clutch', '#Pro'] },
-  { id: 4, type: 'photo', title: 'Team Dinner', date: 'Jan 12, 2026', thumbnail: 'bg-green-500', url: '#', height: 'h-[500px]', views: '5K', likes: '800', tags: ['#Vlog', '#Life'] },
-  { id: 5, type: 'video', title: 'Highlights #42', date: 'Jan 11, 2026', thumbnail: 'bg-indigo-600', url: '#', height: 'h-[300px]', views: '22K', likes: '3K', tags: ['#Recap', '#Stream'] },
-  { id: 6, type: 'clip', title: 'Rangga Crying', date: 'Jan 10, 2026', thumbnail: 'bg-yellow-500', url: '#', height: 'h-[450px]', views: '100K', likes: '12K', tags: ['#Meme', '#Sad'] },
-  { id: 7, type: 'photo', title: 'Setup Tour', date: 'Jan 09, 2026', thumbnail: 'bg-slate-600', url: '#', height: 'h-[350px]', views: '15K', likes: '1.5K', tags: ['#Setup', '#Tech'] },
-  { id: 8, type: 'clip', title: 'Jumpscare!', date: 'Jan 08, 2026', thumbnail: 'bg-rose-600', url: '#', height: 'h-[400px]', views: '50K', likes: '4K', tags: ['#Horror', '#Scream'] },
-  { id: 9, type: 'photo', title: 'Fan Meetup', date: 'Jan 07, 2026', thumbnail: 'bg-orange-500', url: '#', height: 'h-[300px]', views: '3K', likes: '500', tags: ['#Event', '#Fans'] },
-  { id: 10, type: 'video', title: 'Q&A Session', date: 'Jan 06, 2026', thumbnail: 'bg-teal-500', url: '#', height: 'h-[500px]', views: '10K', likes: '1K', tags: ['#Talk', '#Info'] },
-  { id: 11, type: 'photo', title: 'New Jersey', date: 'Jan 05, 2026', thumbnail: 'bg-cyan-600', url: '#', height: 'h-[400px]', views: '8K', likes: '900', tags: ['#Merch', '#Style'] },
-  { id: 12, type: 'clip', title: 'Fail Moment', date: 'Jan 04, 2026', thumbnail: 'bg-pink-600', url: '#', height: 'h-[350px]', views: '30K', likes: '2.5K', tags: ['#Lol', '#Fail'] },
-]
-
 export default function GalleryPage() {
+  const supabase = createClient()
   const container = useRef<HTMLDivElement>(null)
+  
+  // State Data
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null)
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
   
-  // TOAST STATE
+  // Toast State
   const [toast, setToast] = useState<{ show: boolean, msg: string, type: 'success' | 'error' }>({ show: false, msg: '', type: 'success' })
 
+  // --- FETCH DATA ---
+  useEffect(() => {
+    const fetchGallery = async () => {
+      setIsLoading(true)
+      const { data, error } = await supabase
+        .from('gallery_items')
+        .select('*')
+        .order('id', { ascending: false }) 
+      
+      if (error) {
+        console.error('Error fetching gallery:', error)
+        showToast('Failed to load gallery items', 'error')
+      } else {
+        setGalleryItems(data || [])
+      }
+      setIsLoading(false)
+    }
+
+    fetchGallery()
+  }, [])
+
+  // --- HELPER: TOAST ---
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ show: true, msg, type })
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000)
   }
 
+  // --- LENIS SCROLL ---
   useEffect(() => {
     const lenis = new Lenis()
     function raf(time: number) {
@@ -62,20 +80,21 @@ export default function GalleryPage() {
     return () => { lenis.destroy() }
   }, [])
 
-  // SCROLL ANIMATION (Fixed using Pixel Value like Assets page)
+  // --- SCROLL ANIMATION ---
   const { scrollY } = useScroll() 
   const y1 = useTransform(scrollY, [0, 1000], [0, -50])
-  const y2 = useTransform(scrollY, [0, 1000], [0, -400])
-  const y3 = useTransform(scrollY, [0, 1000], [0, -150])
-  const y4 = useTransform(scrollY, [0, 1000], [0, -500])
+  const y2 = useTransform(scrollY, [0, 1000], [0, -150])
+  const y3 = useTransform(scrollY, [0, 1000], [0, -80])
+  const y4 = useTransform(scrollY, [0, 1000], [0, -200])
 
   const bgRotate = useTransform(scrollY, [0, 1000], [0, 360])
   const bgY = useTransform(scrollY, [0, 1000], [0, 200])
 
-  const col1 = galleryItems.slice(0, 3)
-  const col2 = galleryItems.slice(3, 6)
-  const col3 = galleryItems.slice(6, 9)
-  const col4 = galleryItems.slice(9, 12)
+  // --- SPLIT COLUMNS (MASONRY LOGIC) ---
+  const col1 = galleryItems.filter((_, i) => i % 4 === 0)
+  const col2 = galleryItems.filter((_, i) => i % 4 === 1)
+  const col3 = galleryItems.filter((_, i) => i % 4 === 2)
+  const col4 = galleryItems.filter((_, i) => i % 4 === 3)
 
   const handleItemClick = (item: GalleryItem) => {
     setSelectedItem(item)
@@ -84,14 +103,14 @@ export default function GalleryPage() {
 
   const handleShare = async () => {
     if (!selectedItem) return
-    const shareData = { title: selectedItem.title, text: `Check this out!`, url: window.location.href }
+    const shareData = { title: selectedItem.title, text: `Check this out!`, url: selectedItem.url }
 
     try {
       if (navigator.share) {
         await navigator.share(shareData)
         showToast("Shared successfully!")
       } else {
-        await navigator.clipboard.writeText(window.location.href)
+        await navigator.clipboard.writeText(selectedItem.url)
         showToast("Link copied to clipboard!")
       }
     } catch (err) {
@@ -100,9 +119,9 @@ export default function GalleryPage() {
   }
 
   return (
-    <div ref={container} className="min-h-[200vh] bg-[#0a0a0a] text-foreground relative overflow-hidden">
+    <div ref={container} className="min-h-screen bg-[#0a0a0a] text-foreground relative overflow-hidden">
       
-      {/* --- TOAST NOTIFICATION (Fixed Centering) --- */}
+      {/* TOAST */}
       <AnimatePresence>
         {toast.show && (
           <div className="fixed bottom-10 left-0 right-0 flex justify-center z-[9999] pointer-events-none">
@@ -161,70 +180,112 @@ export default function GalleryPage() {
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
-          <Column items={col1} y={y1} onClick={handleItemClick} />
-          <Column items={col2} y={y2} onClick={handleItemClick} className="mt-12 md:mt-24" />
-          <Column items={col3} y={y3} onClick={handleItemClick} className="hidden lg:flex" />
-          <Column items={col4} y={y4} onClick={handleItemClick} className="hidden lg:flex mt-32" />
-        </div>
+        {/* LOADING STATE */}
+        {isLoading ? (
+           <div className="w-full flex justify-center py-20">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
+           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+            {/* Col 1 & 2 Aman */}
+            <Column items={col1} y={y1} onClick={handleItemClick} />
+            <Column items={col2} y={y2} onClick={handleItemClick} className="mt-6 md:mt-24" />
+            
+            {/* FIX: DI SINI MASALAHNYA. Class 'hidden' dihapus biar muncul di semua layar */}
+            <Column 
+              items={col3} 
+              y={y3} 
+              onClick={handleItemClick} 
+              className="flex mt-6 md:mt-0" 
+            />
+            <Column 
+              items={col4} 
+              y={y4} 
+              onClick={handleItemClick} 
+              className="flex mt-6 md:mt-24 lg:mt-32" 
+            />
+          </div>
+        )}
 
       </main>
 
-      {/* --- REVAMPED MODAL PREVIEW --- */}
+      {/* --- RESPONSIVE MODAL PREVIEW (FIXED LAYOUT) --- */}
       <Modal 
           isOpen={isOpen} 
           onOpenChange={onOpenChange} 
-          size="5xl" // Lebih besar biar immersive
+          size="5xl" 
           placement="center"
           backdrop="blur"
           hideCloseButton
+          scrollBehavior="inside"
           classNames={{
-             base: "bg-transparent shadow-none", // Kita styling container sendiri
+             base: "bg-transparent shadow-none max-h-[95vh] my-auto", 
+             wrapper: "z-[9999]"
           }}
         >
-          <ModalContent className="bg-[#0a0a0a] border border-white/10 rounded-3xl overflow-hidden relative shadow-2xl">
+          {/* FIX: ModalContent dibatasi tinggi max-nya biar pas di layar */}
+          <ModalContent className="bg-[#0a0a0a] border border-white/10 rounded-3xl overflow-hidden relative shadow-2xl mx-2 md:mx-0 flex flex-col max-h-[90vh] md:max-h-[600px]">
             {(onClose) => (
-              <div className="flex flex-col md:flex-row h-full min-h-[600px]">
+              // FIX: Container utama bisa di-scroll di mobile (overflow-y-auto)
+              <div className="flex flex-col md:flex-row w-full h-full overflow-y-auto md:overflow-hidden">
                 
-                {/* 1. VISUAL AREA (KIRI/ATAS) - DOMINANT */}
-                <div className="relative w-full md:w-2/3 bg-black flex items-center justify-center p-8 overflow-hidden group">
+                {/* 1. VISUAL AREA (EMBED TIKTOK LOGIC DISINI) */}
+                {/* FIX: min-h dikecilin jadi 300px di mobile biar tombol bawah kelihatan */}
+                <div className="relative w-full md:w-2/3 bg-black flex-shrink-0 min-h-[300px] md:h-full flex items-center justify-center p-0 md:p-8 overflow-hidden group">
                    
-                   {/* Ambient Background (Glow sesuai warna thumbnail) */}
-                   <div className={`absolute inset-0 ${selectedItem?.thumbnail} opacity-20 blur-[100px] scale-150`} />
+                   {/* Background Glow */}
+                   <div className={`absolute inset-0 ${selectedItem?.thumbnail_class} opacity-10 blur-[100px] scale-150 pointer-events-none`} />
                    
-                   {/* Content Container */}
-                   <div className="relative z-10 w-full h-full flex items-center justify-center">
-                      {selectedItem?.type === 'photo' ? (
-                         <div className={`w-full h-full max-h-[400px] ${selectedItem?.thumbnail} rounded-2xl shadow-2xl flex items-center justify-center border border-white/10 transition-transform duration-700 group-hover:scale-[1.02]`}>
-                            <ImageIcon size={80} className="text-white/50" />
-                         </div>
-                      ) : (
-                         <div className="relative w-full aspect-video bg-black/50 rounded-2xl border border-white/10 flex flex-col items-center justify-center gap-4 backdrop-blur-sm">
-                            <div className={`absolute inset-0 ${selectedItem?.thumbnail} opacity-10 rounded-2xl`} />
-                            <div className="p-6 bg-white/10 rounded-full border border-white/20 backdrop-blur-md animate-pulse">
-                               <Video size={48} className="text-white" />
-                            </div>
-                            <p className="text-default-400 font-mono text-sm">PREVIEW MODE</p>
-                         </div>
-                      )}
-                   </div>
-
-                   {/* Custom Close Button */}
+                   {/* CLOSE BUTTON */}
                    <motion.button 
                       whileHover={{ rotate: 90, scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       onClick={onClose}
-                      className="absolute top-6 left-6 z-50 p-3 bg-black/50 hover:bg-white text-white hover:text-black rounded-full backdrop-blur-md transition-colors border border-white/10"
+                      className="absolute top-4 left-4 z-50 p-2 md:p-3 bg-black/50 hover:bg-white text-white hover:text-black rounded-full backdrop-blur-md transition-colors border border-white/10"
                    >
                       <X size={20} />
                    </motion.button>
+
+                   {/* --- LOGIC DISPLAY UTAMA --- */}
+                   <div className="relative z-10 w-full h-full flex items-center justify-center">
+                      
+                      {selectedItem?.type === 'photo' ? (
+                         // --- JIKA TIPE FOTO: Tampilkan Gambar Full ---
+                         <div className="w-full h-full max-h-[500px] flex items-center justify-center relative p-6">
+                            {selectedItem?.thumbnail_url ? (
+                               <img 
+                                 src={selectedItem.thumbnail_url} 
+                                 alt={selectedItem.title} 
+                                 className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" 
+                               />
+                            ) : (
+                               <div className={`w-full h-full ${selectedItem?.thumbnail_class} opacity-50 rounded-xl`} />
+                            )}
+                         </div>
+                      ) : (
+                         // --- JIKA TIPE VIDEO/CLIP: Tampilkan Embed TikTok ---
+                         // FIX: Padding y di mobile biar embed ga kepotong
+                         <div className="w-full h-full flex items-center justify-center overflow-y-auto custom-scrollbar py-4 md:py-0">
+                            <div className="scale-90 md:scale-100 origin-center">
+                               {selectedItem?.url && (
+                                 <TikTokEmbed 
+                                   url={selectedItem.url} 
+                                   width={325} 
+                                   height={570} // Ukuran standar player TikTok
+                                 />
+                               )}
+                            </div>
+                         </div>
+                      )}
+
+                   </div>
                 </div>
 
-                {/* 2. DETAILS PANEL (KANAN/BAWAH) - INFORMATIVE */}
-                <div className="w-full md:w-1/3 bg-zinc-900/90 backdrop-blur-xl border-l border-white/10 p-8 flex flex-col justify-between">
+                {/* 2. DETAILS PANEL */}
+                {/* FIX: flex-shrink-0 biar ga gepeng, dan overflow-y-auto di desktop kalo konten panjang */}
+                <div className="w-full md:w-1/3 bg-zinc-900/90 backdrop-blur-xl border-t md:border-t-0 md:border-l border-white/10 p-6 md:p-8 flex flex-col justify-between gap-6 flex-shrink-0 md:overflow-y-auto">
                    
                    <div>
-                      {/* Tags */}
                       <div className="flex flex-wrap gap-2 mb-4">
                          <Chip size="sm" variant="flat" color="primary" className="uppercase font-bold tracking-wider text-[10px]">
                             {selectedItem?.type}
@@ -236,56 +297,56 @@ export default function GalleryPage() {
                          ))}
                       </div>
 
-                      {/* Title & Date */}
-                      <h2 className="text-3xl font-black text-white leading-tight mb-2">
+                      <h2 className="text-2xl md:text-3xl font-black text-white leading-tight mb-2">
                          {selectedItem?.title}
                       </h2>
-                      <div className="flex items-center gap-2 text-default-400 text-sm mb-8">
+                      <div className="flex items-center gap-2 text-default-400 text-sm mb-6">
                          <Calendar size={14} />
-                         <span>{selectedItem?.date}</span>
+                         <span>{selectedItem?.date_display}</span> 
                       </div>
 
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-2 gap-4 mb-8">
-                         <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                            <div className="flex items-center gap-2 text-default-400 text-xs mb-1">
-                               <Eye size={14} /> Views
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                         <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                            <div className="flex items-center gap-2 text-default-400 text-[10px] mb-1">
+                               <Eye size={12} /> Views
                             </div>
-                            <div className="text-xl font-bold text-white">{selectedItem?.views}</div>
+                            <div className="text-lg font-bold text-white">{selectedItem?.views}</div>
                          </div>
-                         <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                            <div className="flex items-center gap-2 text-default-400 text-xs mb-1">
-                               <Heart size={14} /> Likes
+                         <div className="p-3 bg-white/5 rounded-xl border border-white/5">
+                            <div className="flex items-center gap-2 text-default-400 text-[10px] mb-1">
+                               <Heart size={12} /> Likes
                             </div>
-                            <div className="text-xl font-bold text-white">{selectedItem?.likes}</div>
+                            <div className="text-lg font-bold text-white">{selectedItem?.likes}</div>
                          </div>
                       </div>
                    </div>
 
-                   {/* Actions */}
-                   <div className="space-y-3">
-                      <Button 
-                         as={Link}
-                         href={selectedItem?.url || '#'}
-                         target="_blank"
-                         size="lg" 
-                         color="primary" 
-                         variant="shadow" 
-                         className="w-full font-bold text-white shadow-lg shadow-primary/20"
-                         endContent={<ExternalLink size={18} />}
-                      >
-                         Open on TikTok
-                      </Button>
-                      <Button 
-                         variant="flat" 
-                         className="w-full bg-white/5 hover:bg-white/10 text-white font-semibold"
-                         onPress={handleShare}
-                         startContent={<Share2 size={18} />}
-                      >
-                         Share Link
-                      </Button>
-                   </div>
-
+                  {/* FIX: Tambah padding bottom di mobile biar tombol ga mepet banget sama bawah layar */}
+                  <div className="space-y-3 pb-6 md:pb-0">
+                    <Button 
+                        // Link Eksternal buat opsi
+                        as="a" 
+                        href={selectedItem?.url || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer" 
+                        size="lg" 
+                        color="primary" 
+                        variant="shadow" 
+                        className="w-full font-bold text-white shadow-lg shadow-primary/20"
+                        endContent={<ExternalLink size={18} />}
+                    >
+                        Open in App
+                    </Button>
+                    
+                    <Button 
+                        variant="flat" 
+                        className="w-full bg-white/5 hover:bg-white/10 text-white font-semibold"
+                        onPress={handleShare}
+                        startContent={<Share2 size={18} />}
+                    >
+                        Share Link
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -295,39 +356,61 @@ export default function GalleryPage() {
   )
 }
 
-// Sub-component Column
+// --- FIX: HELPER BUAT BACA HEIGHT DARI DB ("h-[400px]" -> { height: "400px" }) ---
+const getHeightStyle = (cls?: string) => {
+  if (!cls) return { height: '300px' } // Default kalo kosong
+  
+  // Regex buat ambil angka di dalam kurung siku [...]
+  const match = cls.match(/h-\[(.*?)\]/)
+  
+  if (match && match[1]) {
+    return { height: match[1] } // Return object style { height: '400px' }
+  }
+  
+  return {} // Kalo formatnya beda (misal class biasa h-64), biarin aja (semoga kebaca)
+}
+
+// --- SUB-COMPONENT COLUMN ---
 const Column = ({ items, y, onClick, className = '' }: { items: GalleryItem[], y: any, onClick: (item: GalleryItem) => void, className?: string }) => {
   return (
     <motion.div style={{ y }} className={`flex flex-col gap-6 ${className}`}>
-      {items.map((item) => (
-        <Card 
-          key={item.id}
-          isPressable
-          onPress={() => onClick(item)}
-          className={`w-full ${item.height} border-none relative group overflow-hidden bg-zinc-900 shadow-xl`}
-        >
-          {/* Thumbnail */}
-          <div className={`absolute inset-0 ${item.thumbnail} transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100`}>
-             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="bg-black/20 backdrop-blur-md p-3 rounded-full border border-white/20">
-                   {item.type === 'photo' ? <ImageIcon className="text-white" /> : <Play className="text-white fill-white" />}
-                </div>
-             </div>
-          </div>
-          
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60 group-hover:opacity-90 transition-opacity" />
-          
-          <div className="absolute bottom-0 left-0 p-6 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-             <div className="flex gap-2 mb-2">
-                <Chip size="sm" classNames={{ base: "bg-white/20 border border-white/20 text-white uppercase text-[10px] font-bold" }}>
-                   {item.type}
-                </Chip>
-             </div>
-             <h3 className="text-white font-bold text-xl leading-tight line-clamp-2">{item.title}</h3>
-             <p className="text-white/50 text-sm mt-1">{item.date}</p>
-          </div>
-        </Card>
-      ))}
+      {items.map((item) => {
+        // Panggil helper di sini
+        const inlineStyle = getHeightStyle(item.height_class)
+
+        return (
+          <Card 
+            key={item.id}
+            isPressable
+            onPress={() => onClick(item)}
+            // FIX: Tambahin style prop buat height
+            style={inlineStyle}
+            // FIX: Tambahin fallback di className juga kalau style kosong
+            className={`w-full border-none relative group overflow-hidden bg-zinc-900 shadow-xl ${!inlineStyle.height ? (item.height_class || 'h-64') : ''}`}
+          >
+            <div className="absolute inset-0 w-full h-full transition-transform duration-700 group-hover:scale-110">
+               {item.thumbnail_url ? (
+                 <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+               ) : (
+                 <div className={`w-full h-full ${item.thumbnail_class} opacity-80 group-hover:opacity-100 transition-opacity`} />
+               )}
+               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                  <div className="bg-black/40 backdrop-blur-md p-3 rounded-full border border-white/20">
+                     {item.type === 'photo' ? <ImageIcon className="text-white" /> : <Play className="text-white fill-white" />}
+                  </div>
+               </div>
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity pointer-events-none" />
+            <div className="absolute bottom-0 left-0 p-6 translate-y-4 group-hover:translate-y-0 transition-transform duration-300 z-20">
+               <div className="flex gap-2 mb-2">
+                  <Chip size="sm" classNames={{ base: "bg-white/20 border border-white/20 text-white uppercase text-[10px] font-bold backdrop-blur-sm" }}>{item.type}</Chip>
+               </div>
+               <h3 className="text-white font-bold text-xl leading-tight line-clamp-2 drop-shadow-md">{item.title}</h3>
+               <p className="text-white/70 text-sm mt-1">{item.date_display}</p>
+            </div>
+          </Card>
+        )
+      })}
     </motion.div>
   )
 }

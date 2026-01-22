@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     // FIX 1: Ganti 'light' jadi 'dark' dan tambah inline style background
-    <html lang="en" className="dark" style={{ backgroundColor: '#0a0a0a' }}>
+    <html lang="en" className="dark" style={{ backgroundColor: '#0a0a0a' }} suppressHydrationWarning={true}>
       <body className={inter.className} style={{ backgroundColor: '#0a0a0a' }}>
         <Providers>
           <Nav />
