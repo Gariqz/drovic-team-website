@@ -291,7 +291,7 @@ export default function LeaderboardsPage() {
                               <span className="font-bold text-white text-lg group-hover:text-yellow-300 transition-colors">{user.username}</span>
                               <div className="flex items-center gap-1">
                                 <Flame size={12} className="text-orange-500" />
-                                <span className="text-xs text-gray-400 font-mono">POWER</span>
+                                <span className="text-xs text-gray-400 font-mono">{user.handle}</span>
                               </div>
                             </div>
                           </div>
