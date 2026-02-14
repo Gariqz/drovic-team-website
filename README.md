@@ -99,8 +99,8 @@ Follow these steps to set up the project locally on your machine.
 │       └── supabase.ts   # Supabase Client Config
 ├── components/           # Reusable UI Components
 └── ...
-
-🤝 Contributing
+```
+## 🤝 Contributing
 
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
 
@@ -114,7 +114,7 @@ Contributions are what make the open-source community such an amazing place to l
 
     Open a Pull Request
 
-📄 License
+## 📄 License
 
 Distributed under the MIT License. See LICENSE for more information.
 
