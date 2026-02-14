@@ -118,20 +118,4 @@ Contributions are what make the open-source community such an amazing place to l
 
 Distributed under the MIT License. See LICENSE for more information.
 
-<div align="center">
-<p>Built with ❤️ by the Drovic Dev Team</p>
-</div>
 
-
-### 💡 Pro Tips biar makin Ganteng:
-
-1.  **Ganti Placeholder Banner:**
-      * Di baris paling atas ada link `https://via.placeholder.com/...`.
-      * Coba lu screenshot Halaman Depan website lu yang keren itu.
-      * Simpen gambarnya di folder `public/banner.png`.
-      * Ganti link tadi jadi `![Project Banner](/banner.png)` (atau upload ke GitHub issue biar dapet link online-nya).
-2.  **Ganti URL:**
-      * Cari `https://drovic-community.vercel.app` dan ganti sama link Vercel asli lu.
-      * Ganti `your-username` sama username GitHub lu.
-
-Langsung copas aja bro, dijamin repo lu langsung keliatan kayak project Open Source serius\! 🔥
